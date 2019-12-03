@@ -12,6 +12,14 @@ enum Move {
 type Pos = (CoordType, CoordType);
 type LineSeg = (Pos, Pos);
 
+#[derive(Debug)]
+struct CumLineSeg {
+    start_steps: i32,
+    end_steps: i32,
+    this_steps: i32,
+    seg: LineSeg,
+}
+
 fn to_delta(m: &Move) -> Pos {
     match m {
         Move::U(a) => (0, -a),
@@ -21,14 +29,30 @@ fn to_delta(m: &Move) -> Pos {
     }
 }
 
-fn to_line_segments(start: &Pos, moves: &Vec<Move>) -> Vec<LineSeg> {
+fn manhattan(p: &Pos) -> i32 {
+    (p.0).abs() + (p.1).abs()
+}
+
+fn manhattan2(a: &Pos, b: &Pos) -> i32 {
+    manhattan(&(b.0 - a.0, b.1 - a.1))
+}
+
+fn to_line_segments(start: &Pos, moves: &Vec<Move>) -> Vec<CumLineSeg> {
     let mut origin = start.clone();
-    let mut lines: Vec<LineSeg> = vec![];
+    let mut lines: Vec<CumLineSeg> = vec![];
+    let mut steps: i32 = 0;
     for mv in moves {
         let delta = to_delta(mv);
         let dest = (origin.0 + delta.0, origin.1 + delta.1);
-        lines.push((origin, dest));
+        let this_steps = manhattan(&delta);
+        lines.push(CumLineSeg {
+            start_steps: steps,
+            end_steps: steps + this_steps,
+            this_steps,
+            seg: (origin, dest),
+        });
         origin = dest;
+        steps += this_steps;
     }
     lines
 }
@@ -97,26 +121,34 @@ fn intersect(la: &LineSeg, lb: &LineSeg) -> Option<Pos> {
 fn main() -> Result<(), std::io::Error> {
     let flines = halp::lines_from_file("inputs/03.txt");
     let movesets: Vec<Vec<Move>> = flines.iter().map(|l| parse_moves(&l)).collect();
-    let lines: Vec<Vec<LineSeg>> = movesets
+    let lines: Vec<Vec<CumLineSeg>> = movesets
         .iter()
         .map(|mvl| to_line_segments(&(0, 0), &mvl))
         .collect();
-    let mut intersections: Vec<Pos> = Vec::new();
+    //println!("{:#?}", lines);
+    let mut intersections: Vec<(i32, i32, Pos)> = Vec::new();
     for l1 in &lines[0] {
         for l2 in &lines[1] {
-            match intersect(&l1, &l2) {
+            match intersect(&l1.seg, &l2.seg) {
                 Some(p) => {
                     if !(p.0 == 0 && p.1 == 0) {
-                        println!("{:?} {:?} = {:?}", l1, l2, p);
-                        intersections.push(p);
+                        let st1 = manhattan2(&l1.seg.0, &p);
+                        let st2 = manhattan2(&l2.seg.0, &p);
+                        //println!("p1: {:?} -> {:?} = {}", l1, p, st1);
+                        //println!("p2: {:?} -> {:?} = {}", l2, p, st2);
+                        intersections.push((l1.start_steps + st1, l2.start_steps + st2, p));
                     }
                 }
                 _ => (),
             }
         }
     }
-    match intersections.iter().min_by_key(|p| (p.0.abs() + p.1.abs())) {
-        Some(p) => println!("=> {:?}", p),
+    match intersections.iter().min_by_key(|t| manhattan(&t.2)) {
+        Some(p) => println!("a => {:?} (md = {})", p, manhattan(&p.2)),
+        _ => (),
+    }
+    match intersections.iter().min_by_key(|t| t.0 + t.1) {
+        Some(p) => println!("b => {:?} (sum = {})", p, p.0 + p.1),
         _ => (),
     }
 
