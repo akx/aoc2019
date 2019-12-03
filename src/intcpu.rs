@@ -30,3 +30,13 @@ pub fn read_intcode(s: &str) -> Vec<u32> {
         .map(|i| i.parse::<u32>().unwrap())
         .collect()
 }
+
+pub fn execute_to_end(mem: &mut Vec<u32>) {
+    let mut pc: usize = 0;
+    loop {
+        match execute_insn(pc, mem) {
+            Some(new_pc) => pc = new_pc,
+            None => break
+        }
+    }
+}
