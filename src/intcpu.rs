@@ -1,3 +1,5 @@
+use std::fs;
+
 macro_rules! imem {
     ($mem: ident, $e: expr) => (&($mem[$mem[$e] as usize]));
     ($mem: ident, $e: expr, $v: expr) => (let p = $mem[$e] as usize; $mem[p] = {$v});
@@ -16,6 +18,15 @@ pub fn execute_insn(pc: usize, mem: &mut Vec<u32>) -> Option<usize> {
         99 => {
             return None;
         }
-        _ => panic!("what is {:#?}", mem[pc])
+        _ => panic!("what is {:#?}", mem[pc]),
     }
+}
+
+pub fn read_intcode(s: &str) -> Vec<u32> {
+    fs::read_to_string(s)
+        .unwrap()
+        .trim()
+        .split(",")
+        .map(|i| i.parse::<u32>().unwrap())
+        .collect()
 }
