@@ -1,6 +1,12 @@
 fn check(pwn: u32) -> bool {
-    let pw = pwn.to_string().into_bytes();
-    assert_eq!(pw.len(), 6);
+    let pw: [u32; 6] = [
+        (pwn / 100000) % 10,
+        (pwn / 10000) % 10,
+        (pwn / 1000) % 10,
+        (pwn / 100) % 10,
+        (pwn / 10) % 10,
+        pwn % 10,
+    ];
     let mut run_lengths: [usize; 6] = [0; 6];
     for i in 0 .. 6 {
         if i > 0 && pw[i] < pw[i - 1] {
@@ -26,7 +32,6 @@ fn main() -> Result<(), std::io::Error> {
     let mut n_matching: u32 = 0;
     for pwn in min ..= max {
         if check(pwn) {
-            println!("{}", pwn);
             n_matching += 1;
         }
     }
